@@ -407,11 +407,14 @@ final class ConversationStore: ObservableObject {
 
     /// What launch should present, decided purely from `restoredLastActive`.
     enum LaunchPresentation: Equatable {
-        /// First-ever launch, or a persisted DM whose peer no longer resolves.
+        /// First-ever launch, or a persisted DM. Launch never re-opens the
+        /// DM itself: landing on a name and message history would make
+        /// startup a disclosure to anyone holding an unlocked phone, and the
+        /// old restorability rule selected favorites — the relationships worth
+        /// most to an observer. The list still gets #1064's ask (don't start
+        /// typing into a broadcast nobody chose), and #1598's recent-chats
+        /// section puts the conversation one tap away.
         case conversationList
-        /// A valid persisted DM — the caller re-opens it via the normal
-        /// private-chat path (this axis never writes `activeChannel`).
-        case restoredDirectChat(PeerID)
         /// Last-active was a public channel — defer to the existing mesh /
         /// `GeoChannelCoordinator` restore; do nothing here.
         case deferToChannelRestore
@@ -483,18 +486,19 @@ final class ConversationStore: ObservableObject {
     /// Decides what to present at launch from the value persisted last
     /// session. Pure aside from reading the init snapshot: performs no
     /// selection mutation and never writes `activeChannel`, so it cannot race
-    /// the location-channel restore. `isPeerResolvable` lets the caller reject
-    /// a stale/unaddressable DM peer, falling back to the conversation list.
-    func restoreLastActiveConversation(isPeerResolvable: (PeerID) -> Bool) -> LaunchPresentation {
+    /// the location-channel restore.
+    ///
+    /// A persisted DM resolves to the conversation list, not to the DM, which
+    /// makes the peer's addressability irrelevant here — that is why no
+    /// resolvability predicate is threaded in. A restorable peer and a stale
+    /// one take the same branch, so there is nothing left for one to decide.
+    func restoreLastActiveConversation() -> LaunchPresentation {
         guard let record = restoredLastActive else { return .conversationList }
         switch record.kind {
         case .mesh, .location:
             return .deferToChannelRestore
         case .direct:
-            guard let raw = record.peerID, !raw.isEmpty else { return .conversationList }
-            let peerID = PeerID(str: raw)
-            guard isPeerResolvable(peerID) else { return .conversationList }
-            return .restoredDirectChat(peerID)
+            return .conversationList
         }
     }
 

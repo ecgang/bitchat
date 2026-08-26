@@ -1498,26 +1498,10 @@ final class ChatViewModel: ObservableObject, BitchatDelegate, SynchronousMessage
 
     /// Initiates a private chat session with a peer.
     /// - Parameter peerID: The peer's ID to start chatting with
-    /// - Note: Switches the UI to private chat mode and loads message history.
-    ///   This zero-extra-argument signature is the witness for the
-    ///   `CommandProcessor` / `ChatNostrCoordinator` context protocols, so it is
-    ///   kept intact; the launch-restore variant is a separate overload below.
+    /// - Note: Switches the UI to private chat mode and loads message history
     @MainActor
     func startPrivateChat(with peerID: PeerID) {
         peerIdentityCoordinator.startPrivateChat(with: peerID)
-    }
-
-    /// #1064 launch-restore variant of `startPrivateChat`. When
-    /// `suppressSystemMessages` is `true`, a gate rejection no-ops silently
-    /// instead of emitting a system message into the current (public mesh)
-    /// timeline, so a rejected DM restore falls back to the conversation list
-    /// cleanly. Since #1415 removed the mutual-favorite gate that is exactly
-    /// one message — the blocked one. Kept as a distinct non-defaulted
-    /// overload — a defaulted extra parameter would not satisfy the context
-    /// protocols above and a default would make the plain call ambiguous.
-    @MainActor
-    func startPrivateChat(with peerID: PeerID, suppressSystemMessages: Bool) {
-        peerIdentityCoordinator.startPrivateChat(with: peerID, suppressSystemMessages: suppressSystemMessages)
     }
 
     @MainActor

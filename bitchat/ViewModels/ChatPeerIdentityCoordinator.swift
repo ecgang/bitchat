@@ -319,7 +319,7 @@ final class ChatPeerIdentityCoordinator {
     }
 
     @MainActor
-    func startPrivateChat(with peerID: PeerID, suppressSystemMessages: Bool = false) {
+    func startPrivateChat(with peerID: PeerID) {
         guard peerID != context.myPeerID else { return }
 
         // Group chats are virtual conversations: no peer identity, favorites,
@@ -334,18 +334,16 @@ final class ChatPeerIdentityCoordinator {
         let peerNickname = context.peerNickname(for: peerID) ?? "unknown"
 
         if context.unifiedIsBlocked(peerID) {
-            if !suppressSystemMessages {
-                context.addSystemMessage(
-                    String(
-                        format: String(
-                            localized: "system.chat.blocked",
-                            comment: "System message when starting chat fails because peer is blocked"
-                        ),
-                        locale: .current,
-                        peerNickname
-                    )
+            context.addSystemMessage(
+                String(
+                    format: String(
+                        localized: "system.chat.blocked",
+                        comment: "System message when starting chat fails because peer is blocked"
+                    ),
+                    locale: .current,
+                    peerNickname
                 )
-            }
+            )
             return
         }
 
