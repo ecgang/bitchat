@@ -135,9 +135,15 @@ final class ConversationStoreLastActiveTests: XCTestCase {
         //   beginPanicWipe → setSelectedPrivatePeer(nil) → setActiveChannel(.mesh) → finishPanicWipe
         // Without the fix those resets re-persist a `.mesh` record, and the next
         // launch would `.deferToChannelRestore` instead of `.conversationList`.
-        // That is what makes this assertion load-bearing rather than trivially
-        // true: `.conversationList` is also the no-record answer, so the test
-        // distinguishes "pointer absent" from "pointer rewritten as .mesh".
+        //
+        // The presentation assertion alone is NOT enough, and the earlier
+        // version of this comment overclaimed. `.conversationList` is the
+        // answer for an absent record AND for a surviving `.direct` one, so a
+        // regression where `finishPanicWipe` stopped removing the key while
+        // suppression still worked would leave the peer id on disk and this
+        // test would stay green. For a panic wipe that is the whole point of
+        // the feature, so assert the stored key is gone, not just that launch
+        // looks right.
         let storage = makeStorage()
 
         let session = ConversationStore(storage: storage)
@@ -149,12 +155,30 @@ final class ConversationStoreLastActiveTests: XCTestCase {
         session.setActiveChannel(.mesh)       // re-persist trigger #2 (suppressed)
         session.finishPanicWipe()             // removes the pointer once
 
-        // A fresh store on the SAME storage finds NO record and falls back to
-        // the conversation list — the pointer is truly absent, not `.mesh`.
+        // The pointer is truly absent, not rewritten as `.mesh` and not left
+        // behind as `.direct`. Read the key directly: this is the only
+        // assertion that separates "erased" from "still on disk", since both
+        // present as `.conversationList` at launch.
+        XCTAssertNil(storage.data(forKey: "conversation.lastActive"))
+
+        // And launch presents the list rather than deferring to a resurrected
+        // `.mesh` record — the suppression half of the same fix.
         XCTAssertEqual(
             ConversationStore(storage: storage).restoreLastActiveConversation(),
             .conversationList
         )
+    }
+
+    // MARK: - Launch decision
+
+    func test_launchPresentsTheListForAConversationListPresentation() {
+        XCTAssertTrue(AppRuntime.shouldPresentConversationList(for: .conversationList))
+    }
+
+    func test_launchLeavesAPublicChannelRestoreAlone() {
+        // Inverting this is how a geohash restore would end up buried under the
+        // people sheet, or a DM launch would land on the public timeline.
+        XCTAssertFalse(AppRuntime.shouldPresentConversationList(for: .deferToChannelRestore))
     }
 
     func test_firstLaunchPresentsConversationList() {

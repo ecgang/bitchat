@@ -171,8 +171,24 @@ final class AppRuntime: ObservableObject {
     /// recent-chats section, so the last conversation is one tap away rather
     /// than lost.
     private func restoreLastActiveConversationOnLaunch() {
-        if conversations.restoreLastActiveConversation() == .conversationList {
+        if Self.shouldPresentConversationList(for: conversations.restoreLastActiveConversation()) {
             appChromeModel.showSidebar = true
+        }
+    }
+
+    /// The launch decision itself, split out as a pure function so the mapping
+    /// is testable without standing up an `AppRuntime`. It is one comparison,
+    /// but it is the comparison that decides whether a public timeline or a
+    /// list ends up on screen, and inverting it silently is exactly the kind of
+    /// mistake the store-level tests cannot see.
+    static func shouldPresentConversationList(
+        for presentation: ConversationStore.LaunchPresentation
+    ) -> Bool {
+        switch presentation {
+        case .conversationList:
+            return true
+        case .deferToChannelRestore:
+            return false
         }
     }
 
