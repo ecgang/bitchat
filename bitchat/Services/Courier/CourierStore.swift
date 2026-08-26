@@ -641,12 +641,21 @@ final class CourierStore {
     /// idempotently.
     ///
     /// **Trust assumption.** A taker can sign a decline and keep the copy, so the
-    /// giver restores a budget the copy still occupies: at most 2x on that
-    /// envelope, bounded by `maxCopies`. This is not defended against, because
-    /// spray only ever reaches favorites and verified peers (`courierDepositPolicy`),
-    /// and a peer inside that boundary can already drop carried mail outright —
-    /// total loss, no protocol needed. Closing the smaller hole would cost a
-    /// three-round offer/accept/deliver handshake on contacts that last seconds.
+    /// giver restores a budget the copy still occupies. Neither clamp bounds the
+    /// sum: `maxCopies` bounds each individual restore, and `sprayedTo` bounds
+    /// re-gives to the *same* courier, so k distinct couriers that each
+    /// decline-and-keep put roughly `maxCopies + k · given` copies in flight
+    /// while local `copies` never drops. The ceiling is the number of
+    /// misbehaving peers inside the spray boundary, not `maxCopies`.
+    ///
+    /// This is not defended against, because spray only ever reaches favorites
+    /// and verified peers (`courierDepositPolicy`), and a peer inside that
+    /// boundary can already drop carried mail outright — total loss, no protocol
+    /// needed. So the send-gated commit rules out inflation by an *honest* taker
+    /// (a lost ack, a restart); it is not an unconditional bound, and the spray
+    /// budget is a bound on copies in flight only against peers that follow the
+    /// protocol. Closing it would cost a three-round offer/accept/deliver
+    /// handshake on contacts that last seconds.
     ///
     /// The restore is gated on the matched record *still listing this courier in
     /// `sprayedTo`*, not on the ciphertext hash alone. A hash match is not proof

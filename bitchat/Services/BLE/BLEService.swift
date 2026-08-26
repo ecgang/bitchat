@@ -4760,6 +4760,20 @@ extension BLEService {
         // both `deposit == true`); decline only on a deterministic non-store
         // (policy reject / quota / invalid), so the giver never restores budget
         // for a copy we actually carry — that would inflate copies.
+        //
+        // `deposit` returns one Bool for two different refusals, and the giver
+        // treats them alike: a policy reject is permanent, but a quota-full
+        // decline is transient — likely the commonest refusal in a dense
+        // encounter, and from precisely the courier that would have taken the
+        // copy an hour later. Splitting them would let the giver re-offer after
+        // a quota decline, but it cannot ride on `sprayedTo`: that set is
+        // append-only *because* one lifetime pending offer per (envelope,
+        // courier) is what makes a receipt resolve its entry idempotently.
+        // Re-offering reopens the receipt-replay hole `cancelSpray` documents —
+        // a stale decline from the first offer resolving the second one's entry
+        // and restoring copies the courier now holds. Doing it safely needs the
+        // same per-offer nonce the relayed-decline note above defers, so both
+        // land together or neither does.
         let sendAck: (Data) -> Void = { sendReceipt($0, MessageType.courierSprayAck.rawValue) }
         let sendDecline: (Data) -> Void = { sendReceipt($0, MessageType.courierSprayDecline.rawValue) }
         notifyUI {
