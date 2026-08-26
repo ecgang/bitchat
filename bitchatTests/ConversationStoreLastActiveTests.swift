@@ -156,10 +156,12 @@ final class ConversationStoreLastActiveTests: XCTestCase {
         session.finishPanicWipe()             // removes the pointer once
 
         // The pointer is truly absent, not rewritten as `.mesh` and not left
-        // behind as `.direct`. Read the key directly: this is the only
-        // assertion that separates "erased" from "still on disk", since both
-        // present as `.conversationList` at launch.
-        XCTAssertNil(storage.data(forKey: "conversation.lastActive"))
+        // behind as `.direct`. This is the only assertion that separates
+        // "erased" from "still on disk", since both present as
+        // `.conversationList` at launch. Asked through the store rather than
+        // by key literal: a literal here would go quietly vacuous the day the
+        // key is renamed, checking a string nothing writes.
+        XCTAssertFalse(ConversationStore(storage: storage)._test_hasPersistedLastActive)
 
         // And launch presents the list rather than deferring to a resurrected
         // `.mesh` record — the suppression half of the same fix.

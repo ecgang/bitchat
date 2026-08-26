@@ -472,6 +472,18 @@ final class ConversationStore: ObservableObject {
         storage.removeObject(forKey: lastActiveKey)
     }
 
+    /// Whether a last-active pointer is on disk right now. Test-only, and it
+    /// exists because the panic wipe's guarantee is that the pointer is *gone*
+    /// — which launch cannot report: an absent record and a surviving
+    /// `.direct` one both present as `.conversationList`, so a test reading
+    /// only the presentation passes while a peer id survives an emergency
+    /// clear. Goes through the same private `lastActiveKey` production uses,
+    /// so renaming the key moves the test with it instead of leaving it
+    /// checking a string nothing writes.
+    var _test_hasPersistedLastActive: Bool {
+        storage.data(forKey: lastActiveKey) != nil
+    }
+
     /// Begins a panic wipe: suppress last-active persistence so the selection/channel
     /// resets that follow cannot re-write the pointer we're about to remove.
     func beginPanicWipe() { isPanicWiping = true }
