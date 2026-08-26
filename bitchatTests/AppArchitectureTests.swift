@@ -501,6 +501,11 @@ struct AppArchitectureTests {
         chromeModel.isLocationChannelsSheetPresented = true
         chromeModel.presentNotices()
         chromeModel.showFingerprint(for: PeerID(str: "peer-3"))
+        // The people/conversation-list sheet counts: ContentView presents it
+        // whenever `showSidebar || selectedPrivatePeerID != nil`, so a latch
+        // left set covers the root timeline exactly like the others. Launch
+        // restore (#1064) can raise it without the person touching anything.
+        chromeModel.showSidebar = true
 
         chromeModel.panicClearAllData()
 
@@ -508,6 +513,7 @@ struct AppArchitectureTests {
         #expect(!chromeModel.isLocationChannelsSheetPresented)
         #expect(!chromeModel.isNoticesSheetPresented)
         #expect(chromeModel.showingFingerprintFor == nil)
+        #expect(!chromeModel.showSidebar)
     }
 
     @Test("Recent chats list direct conversations with people absent from the rosters")

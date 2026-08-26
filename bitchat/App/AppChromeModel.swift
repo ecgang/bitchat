@@ -146,6 +146,11 @@ final class AppChromeModel: ObservableObject {
         isLocationChannelsSheetPresented = false
         isNoticesSheetPresented = false
         showingFingerprintFor = nil
+        // The people/conversation-list sheet is presented on this latch too
+        // (`ContentView.isPeopleSheetPresented`), and launch restore can raise
+        // it without anyone touching the screen — so it hides the outcome
+        // exactly like the sheets above unless it is cleared here.
+        showSidebar = false
 
         prepareForPanic?()
         onPanicWipe()
